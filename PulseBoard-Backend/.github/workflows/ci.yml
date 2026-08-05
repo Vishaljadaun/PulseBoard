@@ -1,0 +1,41 @@
+name: Backend CI
+
+# Runs build + tests on every push/PR touching the backend.
+# Deployment itself is handled by Render's own GitHub integration
+# (Render watches this repo directly and redeploys on push to main) —
+# this workflow is just the safety net that fails loudly if something's broken.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+  pull_request:
+    paths:
+      - "backend/**"
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  PROJECT_PATH: backend/src/PulseBoard.API/PulseBoard.API.csproj
+  TEST_PROJECT_PATH: backend/tests/PulseBoard.Application.Tests/PulseBoard.Application.Tests.csproj
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore ${{ env.PROJECT_PATH }}
+
+      - name: Build
+        run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test ${{ env.TEST_PROJECT_PATH }} --configuration Release
