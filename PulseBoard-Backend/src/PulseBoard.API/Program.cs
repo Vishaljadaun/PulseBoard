@@ -10,7 +10,15 @@ using PulseBoard.Application.Common.Interfaces;
 using PulseBoard.Infrastructure;
 using PulseBoard.Infrastructure.Persistence;
 
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Disable FileSystemWatcher / inotify configuration file watching to prevent crashes on containerized hosts
+builder.Configuration.Sources.Clear();
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables();
 
 // ---- Layers (Clean Architecture composition root) ----
 builder.Services.AddApplication();
