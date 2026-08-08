@@ -1,9 +1,11 @@
 import { apiClient } from './client';
-import type { Poll, PollResults, PollSuggestion } from '../types';
+import type { Poll, PollResults, PollSuggestion, VoteResult } from '../types';
 
 export interface CreatePollPayload {
   question: string;
   options: string[];
+  /** Optional — index into `options` of the correct answer. Omit for a plain opinion poll with no right answer. */
+  correctOptionIndex?: number | null;
 }
 
 export const pollApi = {
@@ -38,6 +40,6 @@ export const pollApi = {
 
   vote: (pollId: string, optionId: string, participantId: string) =>
     apiClient
-      .post<PollResults>(`/polls/${pollId}/vote`, { optionId, participantId })
+      .post<VoteResult>(`/polls/${pollId}/vote`, { optionId, participantId })
       .then((res) => res.data),
 };

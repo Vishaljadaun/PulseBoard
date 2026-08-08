@@ -16,6 +16,8 @@ export function ParticipatePage() {
   const { activePoll, results, setActivePoll, setResults, isConnected } = useSessionHub(sessionId);
   const [hasVoted, setHasVoted] = useState(false);
   const [localResults, setLocalResults] = useState<PollResults | null>(null);
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [voteCorrectness, setVoteCorrectness] = useState<{ isCorrect: boolean | null; correctOptionId: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isVoting, setIsVoting] = useState(false);
 
@@ -23,6 +25,8 @@ export function ParticipatePage() {
   useEffect(() => {
     setHasVoted(false);
     setLocalResults(null);
+    setSelectedOptionId(null);
+    setVoteCorrectness(null);
     setError(null);
   }, [activePoll?.id]);
 
@@ -50,9 +54,14 @@ export function ParticipatePage() {
     setIsVoting(true);
     try {
       const participantId = getParticipantId();
-      const voteResults = await pollApi.vote(activePoll.id, optionId, participantId);
-      setLocalResults(voteResults);
-      setResults(voteResults);
+      const voteResult = await pollApi.vote(activePoll.id, optionId, participantId);
+      setLocalResults(voteResult.results);
+      setResults(voteResult.results);
+      setSelectedOptionId(voteResult.selectedOptionId);
+      // isCorrect/correctOptionId are only ever present in this direct
+      // response to the voter — never broadcast, never visible to anyone
+      // who hasn't voted on this poll yet.
+      setVoteCorrectness({ isCorrect: voteResult.isCorrect, correctOptionId: voteResult.correctOptionId });
       setHasVoted(true);
     } catch (err) {
       setError(getApiErrorMessage(err));
@@ -155,11 +164,30 @@ export function ParticipatePage() {
               animate={{ opacity: 1, y: 0 }}
               className="glass-card rounded-2xl p-6"
             >
-              <div className="flex items-center justify-center gap-2 mb-5">
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <span className="text-signal-mint text-sm font-medium">✓ Vote counted — live results</span>
               </div>
+
+              {/* Correctness reveal — only ever shown to the voter themselves, from the direct vote response, never from a broadcast. */}
+              {voteCorrectness?.isCorrect !== null && voteCorrectness !== null && (
+                <div
+                  className={`text-center text-sm font-medium mb-4 px-3 py-2 rounded-lg border ${
+                    voteCorrectness.isCorrect
+                      ? 'bg-signal-mint/10 text-signal-mint border-signal-mint/20'
+                      : 'bg-pulse-magenta/10 text-pulse-magenta border-pulse-magenta/20'
+                  }`}
+                >
+                  {voteCorrectness.isCorrect ? '🎉 Correct!' : '✗ Not quite — check the marked answer below'}
+                </div>
+              )}
+
               <p className="font-display font-semibold mb-4 text-center">{activePoll.question}</p>
-              <LiveBarChart poll={activePoll} results={displayResults} />
+              <LiveBarChart
+                poll={activePoll}
+                results={displayResults}
+                selectedOptionId={selectedOptionId}
+                correctOptionId={voteCorrectness?.correctOptionId}
+              />
             </motion.div>
           )}
         </AnimatePresence>

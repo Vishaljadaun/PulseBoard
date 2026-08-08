@@ -32,12 +32,13 @@ public class PollsController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>Host — create a new poll (starts in Draft) under a session.</summary>
+    /// <summary>Host — create a new poll (starts in Draft) under a session. CorrectOptionIndex is optional — omit for a plain opinion poll.</summary>
     [Authorize]
     [HttpPost("sessions/{sessionId:guid}/polls")]
     public async Task<IActionResult> Create(Guid sessionId, CreatePollRequestBody body)
     {
-        var result = await _mediator.Send(new CreatePollCommand(sessionId, body.Question, body.Options));
+        var result = await _mediator.Send(
+            new CreatePollCommand(sessionId, body.Question, body.Options, body.CorrectOptionIndex));
         return CreatedAtAction(nameof(GetSessionPolls), new { sessionId }, result);
     }
 
@@ -96,6 +97,6 @@ public class PollsController : ControllerBase
     }
 }
 
-public record CreatePollRequestBody(string Question, List<string> Options);
+public record CreatePollRequestBody(string Question, List<string> Options, int? CorrectOptionIndex);
 public record CastVoteRequestBody(Guid OptionId, Guid ParticipantId);
 public record GeneratePollSuggestionRequestBody(string Topic);

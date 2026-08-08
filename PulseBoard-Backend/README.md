@@ -9,8 +9,20 @@ and everyone watching sees vote counts update live via SignalR — no
 polling, no refresh.
 
 **Module 3: AI Poll Generation** — host types a topic, an LLM (Groq, free
-tier) drafts a question + 4 options, host reviews/edits before creating the
-poll. Nothing is auto-saved — the AI only ever produces a suggestion.
+tier) drafts a question + 4 options + a suggested correct answer, host
+reviews/edits before creating the poll. Any poll (AI-drafted or manual) can
+optionally have a correct answer marked — participants find out if they
+got it right immediately after voting, but never before (the correct
+answer is never sent to anyone who hasn't voted on that poll yet).
+
+> **Upgrading an existing local copy?** This update added a new column
+> (`PollOptions.IsCorrect`) — you need to run one more migration. See
+> section 3, Step 5, or just run:
+> ```powershell
+> Add-Migration AddCorrectAnswerToPollOption -StartupProject PulseBoard.API
+> Update-Database -StartupProject PulseBoard.API
+> ```
+> in the Package Manager Console (Default project: `PulseBoard.Infrastructure`).
 
 ---
 

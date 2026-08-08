@@ -44,6 +44,15 @@ public class PollOption : BaseEntity
 
     public string Text { get; set; } = string.Empty;
 
+    /// <summary>
+    /// True for the one option that's the "right answer" in a quiz-style
+    /// poll. False on every option for a plain opinion poll with no right
+    /// answer. Never sent to participants before they vote — see
+    /// PollDto vs HostPollDto in Common/Models/PollDto.cs for why there
+    /// are two separate poll DTOs.
+    /// </summary>
+    public bool IsCorrect { get; set; }
+
     public ICollection<Vote> Votes { get; set; } = new List<Vote>();
 }
 

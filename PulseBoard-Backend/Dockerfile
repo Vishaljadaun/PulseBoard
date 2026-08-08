@@ -16,6 +16,11 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
 
+# Belt-and-braces alongside the code-level fix in Program.cs (which
+# explicitly disables config file-watching) — this also tells the default
+# host builder pipeline not to bother, in case Program.cs ever changes.
+ENV DOTNET_hostBuilder__reloadConfigOnChange=false
+
 EXPOSE 8080
 # Render injects $PORT at runtime; this shell form resolves it when the
 # container actually starts (a plain ENV can't do that at build time).

@@ -34,6 +34,7 @@ export interface PollOption {
 export interface PollSuggestion {
   question: string;
   options: string[];
+  correctOptionIndex: number;
 }
 
 export interface Poll {
@@ -45,6 +46,8 @@ export interface Poll {
   activatedAt: string | null;
   closedAt: string | null;
   options: PollOption[];
+  /** Only present on host-facing responses (create/list) — never on the public/broadcast poll shape, so participants can't see it before voting. */
+  correctOptionId?: string | null;
 }
 
 export interface PollOptionResult {
@@ -57,6 +60,14 @@ export interface PollResults {
   pollId: string;
   totalVotes: number;
   options: PollOptionResult[];
+}
+
+/** Returned only as the direct response to whoever just voted — never received via SignalR. */
+export interface VoteResult {
+  results: PollResults;
+  selectedOptionId: string;
+  isCorrect: boolean | null;
+  correctOptionId: string | null;
 }
 
 /** Shape of the error payload the backend's ExceptionHandlingMiddleware returns. */

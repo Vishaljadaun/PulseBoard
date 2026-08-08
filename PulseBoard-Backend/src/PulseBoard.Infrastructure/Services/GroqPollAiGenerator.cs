@@ -41,11 +41,13 @@ public class GroqPollAiGenerator : IPollAiGenerator
         var model = _configuration["Ai:Model"] ?? "llama-3.1-8b-instant";
 
         var systemPrompt =
-            "You write live-audience poll questions for events (like Slido/Kahoot). " +
+            "You write live-audience quiz poll questions for events (like Kahoot). " +
             "Given a topic, respond with ONLY a JSON object, no markdown fences, no extra text, in this exact shape: " +
-            "{\"question\": \"...\", \"options\": [\"...\", \"...\", \"...\", \"...\"]}. " +
-            "The question must be short (under 20 words) and neutral. Provide exactly 4 short, distinct options " +
-            "(each under 8 words). Do not include an 'Other' or 'None of the above' option.";
+            "{\"question\": \"...\", \"options\": [\"...\", \"...\", \"...\", \"...\"], \"correctOptionIndex\": 0}. " +
+            "The question must be short (under 20 words). Provide exactly 4 short, distinct options " +
+            "(each under 8 words) where EXACTLY ONE is factually correct for the topic. " +
+            "\"correctOptionIndex\" is the 0-based index (0-3) of the correct option in the \"options\" array. " +
+            "Do not include an 'Other' or 'None of the above' option.";
 
         var requestBody = new
         {
@@ -105,7 +107,19 @@ public class GroqPollAiGenerator : IPollAiGenerator
             if (string.IsNullOrWhiteSpace(question) || options.Count < 2)
                 throw new AiGenerationException("The AI service returned something unusable. Try rephrasing the topic.");
 
-            return new PollSuggestionDto(question, options);
+            // Default to 0 (first option) if the field is missing or out of
+            // range, rather than failing the whole request over one bad
+            // field — the host can still fix the correct answer manually
+            // in the poll creation form before saving.
+            var correctIndex = 0;
+            if (suggestionDoc.RootElement.TryGetProperty("correctOptionIndex", out var correctIndexElement)
+                && correctIndexElement.TryGetInt32(out var parsedIndex)
+                && parsedIndex >= 0 && parsedIndex < options.Count)
+            {
+                correctIndex = parsedIndex;
+            }
+
+            return new PollSuggestionDto(question, options, correctIndex);
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or IndexOutOfRangeException)
         {

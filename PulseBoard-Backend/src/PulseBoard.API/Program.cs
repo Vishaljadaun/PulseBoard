@@ -10,15 +10,31 @@ using PulseBoard.Application.Common.Interfaces;
 using PulseBoard.Infrastructure;
 using PulseBoard.Infrastructure.Persistence;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-// Disable FileSystemWatcher / inotify configuration file watching to prevent crashes on containerized hosts
+// ---- Config sources, rebuilt without file-watching ----
+// WebApplication.CreateBuilder wires up appsettings.json / appsettings.
+// {env}.json with reloadOnChange: true by default, which sets up a
+// FileSystemWatcher (inotify on Linux). Render's free-tier containers have
+// a very low inotify instance limit, and the app crashes on startup the
+// moment it's hit — this rebuilds the same sources with reloadOnChange:
+// false so no file watcher is ever created. Nothing else about config
+// resolution changes (env vars still override appsettings.json as usual).
 builder.Configuration.Sources.Clear();
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
     .AddEnvironmentVariables();
+
+// User Secrets is normally added automatically by CreateBuilder in
+// Development — but Sources.Clear() above wiped that out too, so it has to
+// be re-added explicitly here or "Manage User Secrets" in Visual Studio
+// stops doing anything locally (Jwt:Secret / Ai:GroqApiKey would silently
+// fall back to the placeholder values in appsettings.json).
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddUserSecrets<Program>(optional: true, reloadOnChange: false);
+}
 
 // ---- Layers (Clean Architecture composition root) ----
 builder.Services.AddApplication();

@@ -30,6 +30,7 @@ public class PollOptionConfiguration : IEntityTypeConfiguration<PollOption>
     {
         builder.HasKey(o => o.Id);
         builder.Property(o => o.Text).IsRequired().HasMaxLength(120);
+        builder.Property(o => o.IsCorrect).HasDefaultValue(false);
 
         builder.HasMany(o => o.Votes)
             .WithOne(v => v.PollOption)

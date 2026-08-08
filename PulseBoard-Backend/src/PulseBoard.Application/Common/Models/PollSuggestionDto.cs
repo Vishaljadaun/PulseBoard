@@ -6,4 +6,4 @@ namespace PulseBoard.Application.Common.Models;
 /// ever gets saved via the normal CreatePoll command. No DB write happens
 /// as part of generating this.
 /// </summary>
-public record PollSuggestionDto(string Question, List<string> Options);
+public record PollSuggestionDto(string Question, List<string> Options, int CorrectOptionIndex);

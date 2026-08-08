@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { pollApi } from '../api/pollApi';
@@ -8,7 +8,7 @@ import { Button } from './Button';
 import { FormField } from './FormField';
 import { LiveBarChart } from './LiveBarChart';
 import { staggerContainer, staggerItem } from './PageTransition';
-import type { Poll } from '../types';
+import type { Poll, PollResults } from '../types';
 
 const POLL_STATUS_STYLES: Record<Poll['status'], string> = {
   Draft: 'bg-white/5 text-muted',
@@ -26,16 +26,50 @@ function SparkleIcon() {
 
 export function PollManager({ sessionId }: { sessionId: string }) {
   const queryClient = useQueryClient();
-  const { activePoll: liveActivePoll, results: liveResults } = useSessionHub(sessionId);
+  const { results: liveResults } = useSessionHub(sessionId);
 
   const { data: polls } = useQuery({
     queryKey: ['polls', sessionId],
     queryFn: () => pollApi.getSessionPolls(sessionId),
   });
 
+  // Keyed by poll id. This is deliberately NOT gated on "is this the poll
+  // SignalR told us is active" — that broadcast only fires once, at the
+  // moment of activation, so a host who loads/reloads the page *after*
+  // activation would otherwise see permanently-zero results even though
+  // votes are coming in. Instead: every live update overwrites this map by
+  // poll id, and a one-time fallback fetch (below) seeds it with whatever
+  // the database already has for any non-Draft poll, so the numbers are
+  // right immediately regardless of connection timing.
+  const [resultsByPollId, setResultsByPollId] = useState<Record<string, PollResults>>({});
+
+  useEffect(() => {
+    if (liveResults) {
+      setResultsByPollId((prev) => ({ ...prev, [liveResults.pollId]: liveResults }));
+    }
+  }, [liveResults]);
+
+  useEffect(() => {
+    if (!polls) return;
+    polls
+      .filter((p) => p.status !== 'Draft')
+      .forEach((p) => {
+        pollApi
+          .getResults(p.id)
+          .then((r) => setResultsByPollId((prev) => ({ ...prev, [p.id]: r })))
+          .catch(() => {});
+      });
+    // Only re-run when the set of poll ids/status changes, not on every
+    // resultsByPollId update — otherwise this would refetch in a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [polls?.map((p) => `${p.id}:${p.status}`).join(',')]);
+
+  const hasActivePoll = polls?.some((p) => p.status === 'Active') ?? false;
+
   const [isCreating, setIsCreating] = useState(false);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
+  const [correctOptionIndex, setCorrectOptionIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [topic, setTopic] = useState('');
@@ -43,11 +77,16 @@ export function PollManager({ sessionId }: { sessionId: string }) {
 
   const createMutation = useMutation({
     mutationFn: () =>
-      pollApi.create(sessionId, { question, options: options.filter((o) => o.trim() !== '') }),
+      pollApi.create(sessionId, {
+        question,
+        options: options.filter((o) => o.trim() !== ''),
+        correctOptionIndex,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['polls', sessionId] });
       setQuestion('');
       setOptions(['', '']);
+      setCorrectOptionIndex(null);
       setTopic('');
       setIsCreating(false);
       setError(null);
@@ -61,6 +100,7 @@ export function PollManager({ sessionId }: { sessionId: string }) {
       setQuestion(suggestion.question);
       // Pad to at least 2 slots even if the AI returns fewer, so the form stays usable.
       setOptions(suggestion.options.length >= 2 ? suggestion.options : ['', '']);
+      setCorrectOptionIndex(suggestion.correctOptionIndex);
       setAiError(null);
     },
     onError: (err) => setAiError(getApiErrorMessage(err)),
@@ -87,7 +127,13 @@ export function PollManager({ sessionId }: { sessionId: string }) {
   }
 
   function removeOption(index: number) {
-    if (options.length > 2) setOptions((prev) => prev.filter((_, i) => i !== index));
+    if (options.length <= 2) return;
+    setOptions((prev) => prev.filter((_, i) => i !== index));
+    setCorrectOptionIndex((prev) => {
+      if (prev === null) return null;
+      if (prev === index) return null; // the removed option was the marked answer
+      return prev > index ? prev - 1 : prev;
+    });
   }
 
   function handleSubmit(e: FormEvent) {
@@ -127,6 +173,12 @@ export function PollManager({ sessionId }: { sessionId: string }) {
               </div>
             )}
 
+            {hasActivePoll && (
+              <div className="bg-signal-mint/5 text-signal-mint text-xs px-3 py-2 rounded-lg border border-signal-mint/20">
+                A poll is already live — you can still draft this one, but you'll need to close the active poll before activating it.
+              </div>
+            )}
+
             <div className="bg-pulse-violet/5 border border-pulse-violet/20 rounded-xl p-4 space-y-3">
               <label className="flex items-center gap-1.5 text-sm font-medium text-pulse-violet">
                 <SparkleIcon />
@@ -153,7 +205,7 @@ export function PollManager({ sessionId }: { sessionId: string }) {
               </div>
               {aiError && <p className="text-xs text-pulse-magenta">{aiError}</p>}
               <p className="text-xs text-muted">
-                Drafts a question + options from a topic — review and edit below before creating.
+                Drafts a question, options, and a suggested correct answer from a topic — review and edit below before creating.
               </p>
             </div>
 
@@ -166,28 +218,46 @@ export function PollManager({ sessionId }: { sessionId: string }) {
             />
 
             <div>
-              <label className="block text-sm font-medium text-muted mb-1.5">Options</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-muted">Options</label>
+                <span className="text-xs text-muted">Click ✓ to mark the correct answer (optional)</span>
+              </div>
               <div className="space-y-2">
-                {options.map((opt, i) => (
-                  <div key={i} className="flex gap-2">
-                    <input
-                      required
-                      value={opt}
-                      onChange={(e) => updateOption(i, e.target.value)}
-                      placeholder={`Option ${i + 1}`}
-                      className="focus-ring flex-1 bg-ink/60 border border-border-soft rounded-xl px-3.5 py-2.5 text-sm text-paper placeholder:text-muted/60 focus:border-pulse-violet transition-colors"
-                    />
-                    {options.length > 2 && (
+                {options.map((opt, i) => {
+                  const isCorrect = correctOptionIndex === i;
+                  return (
+                    <div key={i} className="flex gap-2 items-center">
                       <button
                         type="button"
-                        onClick={() => removeOption(i)}
-                        className="focus-ring text-muted hover:text-pulse-magenta px-2 transition-colors"
+                        onClick={() => setCorrectOptionIndex(isCorrect ? null : i)}
+                        title={isCorrect ? 'Marked as correct — click to unmark' : 'Mark as the correct answer'}
+                        className={`focus-ring shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center text-sm transition-colors ${
+                          isCorrect
+                            ? 'bg-signal-mint/15 border-signal-mint text-signal-mint'
+                            : 'bg-ink/60 border-border-soft text-muted hover:text-signal-mint hover:border-signal-mint/50'
+                        }`}
                       >
-                        ✕
+                        ✓
                       </button>
-                    )}
-                  </div>
-                ))}
+                      <input
+                        required
+                        value={opt}
+                        onChange={(e) => updateOption(i, e.target.value)}
+                        placeholder={`Option ${i + 1}`}
+                        className="focus-ring flex-1 bg-ink/60 border border-border-soft rounded-xl px-3.5 py-2.5 text-sm text-paper placeholder:text-muted/60 focus:border-pulse-violet transition-colors"
+                      />
+                      {options.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => removeOption(i)}
+                          className="focus-ring text-muted hover:text-pulse-magenta px-2 transition-colors"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               {options.length < 8 && (
                 <button
@@ -216,13 +286,12 @@ export function PollManager({ sessionId }: { sessionId: string }) {
       {polls && polls.length > 0 && (
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4">
           {polls.map((poll) => {
-            // Prefer the live-pushed version of this poll's results if it's the currently active one
-            const isLiveActive = liveActivePoll?.id === poll.id;
-            const resultsForThisPoll = isLiveActive ? liveResults : null;
+            const resultsForThisPoll = resultsByPollId[poll.id] ?? null;
+            const correctOption = poll.options.find((o) => o.id === poll.correctOptionId);
 
             return (
               <motion.div key={poll.id} variants={staggerItem} className="glass-card rounded-2xl p-6">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-2">
                   <p className="font-display font-medium">{poll.question}</p>
                   <span
                     className={`shrink-0 ml-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${POLL_STATUS_STYLES[poll.status]}`}
@@ -237,9 +306,18 @@ export function PollManager({ sessionId }: { sessionId: string }) {
                   </span>
                 </div>
 
+                {correctOption && (
+                  <p className="text-xs text-signal-mint mb-4">✓ Correct answer: {correctOption.text}</p>
+                )}
+                {!correctOption && <div className="mb-4" />}
+
                 {(poll.status === 'Active' || poll.status === 'Closed') && (
                   <div className="mb-4">
-                    <LiveBarChart poll={poll} results={resultsForThisPoll} />
+                    <LiveBarChart
+                      poll={poll}
+                      results={resultsForThisPoll}
+                      correctOptionId={poll.correctOptionId}
+                    />
                   </div>
                 )}
 
@@ -247,7 +325,8 @@ export function PollManager({ sessionId }: { sessionId: string }) {
                   {poll.status === 'Draft' && (
                     <Button
                       onClick={() => activateMutation.mutate(poll.id)}
-                      disabled={activateMutation.isPending}
+                      disabled={activateMutation.isPending || hasActivePoll}
+                      title={hasActivePoll ? 'Close the currently active poll first' : undefined}
                     >
                       {activateMutation.isPending ? 'Activating...' : 'Activate'}
                     </Button>
