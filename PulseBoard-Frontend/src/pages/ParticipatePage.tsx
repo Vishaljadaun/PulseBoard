@@ -13,7 +13,7 @@ export function ParticipatePage() {
   const location = useLocation();
   const sessionTitle = (location.state as { title?: string } | null)?.title;
 
-  const { activePoll, results, setActivePoll, setResults, isConnected } = useSessionHub(sessionId);
+  const { activePoll, results, setResults, isConnected } = useSessionHub(sessionId);
   const [hasVoted, setHasVoted] = useState(false);
   const [localResults, setLocalResults] = useState<PollResults | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
@@ -29,24 +29,6 @@ export function ParticipatePage() {
     setVoteCorrectness(null);
     setError(null);
   }, [activePoll?.id]);
-
-  // Fallback: if the host already activated a poll before this participant
-  // joined, they'd never receive the one-time SignalR broadcast for it —
-  // that only fires at the moment of activation. This fetches whatever's
-  // currently active and pushes it into the same state SignalR would have.
-  useEffect(() => {
-    if (!sessionId || activePoll) return;
-
-    pollApi
-      .getActivePoll(sessionId)
-      .then((poll) => {
-        if (!poll) return;
-        setActivePoll(poll);
-        // Also grab current tallies in case votes already came in before this participant joined.
-        return pollApi.getResults(poll.id).then(setResults);
-      })
-      .catch(() => {});
-  }, [sessionId, activePoll, setActivePoll, setResults]);
 
   async function handleVote(optionId: string) {
     if (!activePoll || isVoting) return;
