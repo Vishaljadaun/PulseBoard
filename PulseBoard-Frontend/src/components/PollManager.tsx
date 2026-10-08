@@ -8,7 +8,7 @@ import { Button } from './Button';
 import { FormField } from './FormField';
 import { LiveBarChart } from './LiveBarChart';
 import { staggerContainer, staggerItem } from './PageTransition';
-import type { Poll, PollResults } from '../types';
+import type { Poll, PollResults, SessionStatus } from '../types';
 
 const POLL_STATUS_STYLES: Record<Poll['status'], string> = {
   Draft: 'bg-white/5 text-muted',
@@ -24,7 +24,7 @@ function SparkleIcon() {
   );
 }
 
-export function PollManager({ sessionId }: { sessionId: string }) {
+export function PollManager({ sessionId, sessionStatus }: { sessionId: string; sessionStatus: SessionStatus }) {
   const queryClient = useQueryClient();
   const { results: liveResults } = useSessionHub(sessionId);
 
@@ -78,8 +78,8 @@ export function PollManager({ sessionId }: { sessionId: string }) {
   const createMutation = useMutation({
     mutationFn: () =>
       pollApi.create(sessionId, {
-        question,
-        options: options.filter((o) => o.trim() !== ''),
+        question: question.trim(),
+        options: options.map((o) => o.trim()),
         correctOptionIndex,
       }),
     onSuccess: () => {
@@ -139,6 +139,10 @@ export function PollManager({ sessionId }: { sessionId: string }) {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!question.trim() || options.some((option) => !option.trim())) {
+      setError('Enter a question and fill in every option.');
+      return;
+    }
     createMutation.mutate();
   }
 
@@ -148,6 +152,7 @@ export function PollManager({ sessionId }: { sessionId: string }) {
         <h2 className="font-display text-lg font-semibold">Polls</h2>
         <Button
           variant={isCreating ? 'secondary' : 'primary'}
+          disabled={sessionStatus === 'Ended'}
           onClick={() => {
             setIsCreating((v) => !v);
             setTopic('');
@@ -158,8 +163,16 @@ export function PollManager({ sessionId }: { sessionId: string }) {
         </Button>
       </div>
 
+      {sessionStatus === 'Draft' && <p className="text-sm text-muted mb-4">Prepare your polls, then start the session to activate one.</p>}
+      {sessionStatus === 'Ended' && <p className="text-sm text-muted mb-4">This session has ended. Polls and results are read-only.</p>}
+      {error && (
+        <div role="alert" className="bg-pulse-magenta/10 text-pulse-magenta text-sm px-3 py-2 rounded-lg border border-pulse-magenta/20 mb-4">
+          {error}
+        </div>
+      )}
+
       <AnimatePresence>
-        {isCreating && (
+        {isCreating && sessionStatus !== 'Ended' && (
           <motion.form
             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
             animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
@@ -167,12 +180,6 @@ export function PollManager({ sessionId }: { sessionId: string }) {
             onSubmit={handleSubmit}
             className="glass-card rounded-2xl p-6 space-y-4 overflow-hidden"
           >
-            {error && (
-              <div className="bg-pulse-magenta/10 text-pulse-magenta text-sm px-3 py-2 rounded-lg border border-pulse-magenta/20">
-                {error}
-              </div>
-            )}
-
             {hasActivePoll && (
               <div className="bg-signal-mint/5 text-signal-mint text-xs px-3 py-2 rounded-lg border border-signal-mint/20">
                 A poll is already live — you can still draft this one, but you'll need to close the active poll before activating it.
@@ -322,16 +329,16 @@ export function PollManager({ sessionId }: { sessionId: string }) {
                 )}
 
                 <div className="flex gap-2">
-                  {poll.status === 'Draft' && (
+                  {poll.status === 'Draft' && sessionStatus !== 'Ended' && (
                     <Button
                       onClick={() => activateMutation.mutate(poll.id)}
-                      disabled={activateMutation.isPending || hasActivePoll}
+                      disabled={activateMutation.isPending || hasActivePoll || sessionStatus !== 'Live'}
                       title={hasActivePoll ? 'Close the currently active poll first' : undefined}
                     >
                       {activateMutation.isPending ? 'Activating...' : 'Activate'}
                     </Button>
                   )}
-                  {poll.status === 'Active' && (
+                  {poll.status === 'Active' && sessionStatus === 'Live' && (
                     <Button
                       variant="danger"
                       onClick={() => closeMutation.mutate(poll.id)}

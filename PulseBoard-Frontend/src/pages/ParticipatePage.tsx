@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSessionHub } from '../hooks/useSessionHub';
 import { pollApi } from '../api/pollApi';
@@ -13,7 +13,7 @@ export function ParticipatePage() {
   const location = useLocation();
   const sessionTitle = (location.state as { title?: string } | null)?.title;
 
-  const { activePoll, results, setResults, isConnected } = useSessionHub(sessionId);
+  const { activePoll, results, setResults, isConnected, sessionEnded } = useSessionHub(sessionId);
   const [hasVoted, setHasVoted] = useState(false);
   const [localResults, setLocalResults] = useState<PollResults | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function ParticipatePage() {
   }, [activePoll?.id]);
 
   async function handleVote(optionId: string) {
-    if (!activePoll || isVoting) return;
+    if (!activePoll || isVoting || sessionEnded) return;
     setError(null);
     setIsVoting(true);
     try {
@@ -81,8 +81,19 @@ export function ParticipatePage() {
           <p className="text-center text-muted text-sm mb-6">{sessionTitle}</p>
         )}
 
+        {!isConnected && !sessionEnded && (
+          <p role="status" className="text-center text-muted text-sm mb-4">Connecting to live updates. Checking for changes automatically.</p>
+        )}
+
         <AnimatePresence mode="wait">
-          {!activePoll && (
+          {sessionEnded && (
+            <motion.div key="ended" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card rounded-2xl p-10 text-center" role="status">
+              <h1 className="font-display text-lg mb-2">Session ended</h1>
+              <p className="text-sm text-muted mb-5">Thanks for taking part. The host has finished this session.</p>
+              <Link to="/join" className="focus-ring text-pulse-violet">Join another session</Link>
+            </motion.div>
+          )}
+          {!sessionEnded && !activePoll && (
             <motion.div
               key="waiting"
               initial={{ opacity: 0 }}
@@ -100,7 +111,7 @@ export function ParticipatePage() {
             </motion.div>
           )}
 
-          {activePoll && !hasVoted && (
+          {!sessionEnded && activePoll && !hasVoted && (
             <motion.div
               key={activePoll.id}
               initial={{ opacity: 0, y: 16 }}
@@ -139,7 +150,7 @@ export function ParticipatePage() {
             </motion.div>
           )}
 
-          {activePoll && hasVoted && (
+          {!sessionEnded && activePoll && hasVoted && (
             <motion.div
               key="results"
               initial={{ opacity: 0, y: 16 }}

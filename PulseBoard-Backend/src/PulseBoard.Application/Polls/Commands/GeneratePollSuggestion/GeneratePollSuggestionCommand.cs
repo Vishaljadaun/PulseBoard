@@ -3,6 +3,7 @@ using MediatR;
 using PulseBoard.Application.Common.Exceptions;
 using PulseBoard.Application.Common.Interfaces;
 using PulseBoard.Application.Common.Models;
+using PulseBoard.Domain.Enums;
 
 namespace PulseBoard.Application.Polls.Commands.GeneratePollSuggestion;
 
@@ -39,6 +40,9 @@ public class GeneratePollSuggestionCommandHandler : IRequestHandler<GeneratePoll
 
         if (session.HostId != _currentUser.HostId)
             throw new UnauthorizedException("You do not own this session.");
+
+        if (session.Status == SessionStatus.Ended)
+            throw new BusinessRuleException("Cannot generate polls for an ended session.");
 
         return await _aiGenerator.GenerateAsync(request.Topic, cancellationToken);
     }

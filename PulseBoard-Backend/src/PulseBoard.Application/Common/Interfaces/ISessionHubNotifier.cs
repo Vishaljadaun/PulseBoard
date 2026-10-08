@@ -13,4 +13,5 @@ public interface ISessionHubNotifier
     Task PollActivated(Guid sessionId, PollDto poll);
     Task PollResultsUpdated(Guid sessionId, PollResultsDto results);
     Task PollClosed(Guid sessionId, Guid pollId);
+    Task SessionEnded(Guid sessionId);
 }

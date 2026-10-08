@@ -39,6 +39,9 @@ public class CastVoteCommandHandler : IRequestHandler<CastVoteCommand, VoteResul
         if (poll.Status != PollStatus.Active)
             throw new BusinessRuleException("This poll is not currently active.");
 
+        if (!_db.Sessions.Any(s => s.Id == poll.SessionId && s.Status == SessionStatus.Live))
+            throw new BusinessRuleException("This session is not currently live.");
+
         var option = _db.PollOptions.FirstOrDefault(o => o.Id == request.OptionId && o.PollId == poll.Id)
             ?? throw new NotFoundException(nameof(Domain.Entities.PollOption), request.OptionId);
 

@@ -26,6 +26,7 @@ export function SessionDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions', id] });
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['polls', id] });
     },
     onError: (err) => setError(getApiErrorMessage(err)),
   });
@@ -35,6 +36,7 @@ export function SessionDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions', id] });
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['polls', id] });
     },
     onError: (err) => setError(getApiErrorMessage(err)),
   });
@@ -129,7 +131,7 @@ export function SessionDetailPage() {
         {session.endedAt && <p>Ended: {new Date(session.endedAt).toLocaleString()}</p>}
       </div>
 
-      <PollManager sessionId={session.id} />
+      <PollManager sessionId={session.id} sessionStatus={session.status} />
     </div>
   );
 }

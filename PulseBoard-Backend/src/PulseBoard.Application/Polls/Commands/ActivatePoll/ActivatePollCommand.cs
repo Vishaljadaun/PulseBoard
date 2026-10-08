@@ -35,6 +35,9 @@ public class ActivatePollCommandHandler : IRequestHandler<ActivatePollCommand, P
         if (session.HostId != _currentUser.HostId)
             throw new UnauthorizedException("You do not own this session.");
 
+        if (session.Status != SessionStatus.Live)
+            throw new BusinessRuleException("Start the session before activating a poll. Ended sessions cannot accept new polls.");
+
         // Only one poll can be active per session — close-out rule spans
         // multiple polls, so it lives here rather than on the Poll entity.
         var alreadyActive = _db.Polls.Any(p => p.SessionId == poll.SessionId && p.Status == PollStatus.Active);
