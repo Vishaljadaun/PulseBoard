@@ -19,9 +19,11 @@ public class UnauthorizedException : Exception
     public UnauthorizedException(string message) : base(message) { }
 }
 
-/// <summary>Thrown when the AI provider call fails or returns something unusable. Mapped to 400 in the API — the host just types the poll manually instead.</summary>
+/// <summary>A safe, actionable AI failure. Provider response bodies and credentials stay private.</summary>
 public class AiGenerationException : Exception
 {
-    public AiGenerationException(string message) : base(message) { }
-    public AiGenerationException(string message, Exception inner) : base(message, inner) { }
+    public string Code { get; }
+    public bool Retryable { get; }
+    public AiGenerationException(string message, string code = "ai_invalid_response", bool retryable = true, Exception? inner = null)
+        : base(message, inner) { Code = code; Retryable = retryable; }
 }

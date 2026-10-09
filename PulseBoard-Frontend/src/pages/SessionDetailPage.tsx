@@ -1,6 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
 import { sessionApi } from '../api/sessionApi';
 import { getApiErrorMessage } from '../api/client';
 import { StatusBadge } from '../components/StatusBadge';
@@ -14,6 +13,8 @@ export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [showInviteOptions, setShowInviteOptions] = useState(false);
 
   const { data: session, isLoading } = useQuery({
     queryKey: ['sessions', id],
@@ -26,6 +27,7 @@ export function SessionDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions', id] });
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['polls', id] });
     },
     onError: (err) => setError(getApiErrorMessage(err)),
   });
@@ -35,6 +37,7 @@ export function SessionDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions', id] });
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['polls', id] });
     },
     onError: (err) => setError(getApiErrorMessage(err)),
   });
@@ -44,92 +47,74 @@ export function SessionDetailPage() {
 
   const isLive = session.status === 'Live';
 
+  async function copyJoinLink() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/join?code=${session!.joinCode}`);
+      setCopyMessage('Join link copied');
+    } catch {
+      setCopyMessage('Copy is unavailable. Share the join code or QR code instead.');
+    }
+  }
+
   return (
-    <div className="max-w-lg mx-auto">
-      <Link to="/dashboard" className="focus-ring text-sm text-muted hover:text-paper mb-6 inline-block transition-colors">
-        ← Back to sessions
+    <div>
+      <Link to="/dashboard" className="focus-ring text-sm text-muted hover:text-paper mb-5 inline-flex min-h-9 items-center">
+        ← All sessions
       </Link>
+      <header className="mb-7">
+        <div className="flex flex-wrap items-center gap-3 mb-3">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-pulse-violet">Session workspace</span>
+          <StatusBadge status={session.status} />
+        </div>
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight break-words">{session.title}</h1>
+        <p className="mt-2 text-sm sm:text-base text-muted break-words">{session.topic}</p>
+      </header>
 
-      {/* Animated gradient-border hero card */}
-      <div className="relative rounded-3xl p-[1.5px] overflow-hidden">
-        <motion.div
-          className="absolute inset-0"
-          style={{
-            background:
-              'conic-gradient(from 0deg, var(--color-pulse-violet), var(--color-pulse-magenta), var(--color-signal-mint), var(--color-pulse-violet))',
-          }}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-        />
-        <div className="relative bg-surface rounded-3xl px-8 py-10 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <StatusBadge status={session.status} />
-          </div>
-
-          <h1 className="font-display text-xl font-semibold mb-1">{session.title}</h1>
-          <p className="text-muted mb-8 text-sm">{session.topic}</p>
-
-          <p className="text-xs uppercase tracking-[0.2em] text-muted mb-3">Join code</p>
-
-          <div className="flex justify-center gap-1.5 mb-8">
-            {session.joinCode.split('').map((digit, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 12, rotateX: -90 }}
-                animate={{ opacity: 1, y: 0, rotateX: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className={`w-11 h-14 rounded-xl flex items-center justify-center font-mono text-3xl font-bold ${
-                  isLive
-                    ? 'bg-signal-mint/10 text-signal-mint border border-signal-mint/30'
-                    : 'bg-ink/60 text-paper border border-border-soft'
-                }`}
-              >
-                {digit}
-              </motion.div>
-            ))}
-          </div>
-
-          <JoinQrCode joinCode={session.joinCode} />
-
-          <div className="mb-2">
+      <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">
+        <aside className="glass-card rounded-2xl p-5 sm:p-6 lg:sticky lg:top-24">
+          <p className="text-xs uppercase tracking-[0.16em] text-muted font-semibold mb-3">Invite your audience</p>
+          <p className="font-mono text-3xl sm:text-4xl font-semibold tracking-[0.16em] text-paper mb-2" aria-label={`Join code ${session.joinCode}`}>
+            {session.joinCode}
+          </p>
+          <button type="button" className="focus-ring min-h-11 text-sm text-pulse-violet lg:hidden"
+            aria-expanded={showInviteOptions} aria-controls="invite-options" onClick={() => setShowInviteOptions((visible) => !visible)}>
+            {showInviteOptions ? 'Hide sharing options −' : 'Share code or invite link +'}
+          </button>
+          <div id="invite-options" className={`${showInviteOptions ? 'block' : 'hidden'} lg:block`}>
+          <p className="text-xs leading-relaxed text-muted mb-5">Share this code or a join link. Participants can join once the session is live.</p>
+          <Button variant="secondary" fullWidth onClick={copyJoinLink}>Copy join link</Button>
+          {copyMessage && <p role="status" className="text-xs text-signal-mint mt-2">{copyMessage}</p>}
+          <div className="grid gap-3 mt-4">
+            <JoinQrCode joinCode={session.joinCode} />
             <ShareSessionButton title={session.title} joinCode={session.joinCode} />
           </div>
-
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-pulse-magenta/10 text-pulse-magenta text-sm px-3 py-2 rounded-lg mb-4 border border-pulse-magenta/20"
-              >
-                {error}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="flex gap-3 justify-center">
-            {session.status === 'Draft' && (
-              <Button onClick={() => startMutation.mutate()} disabled={startMutation.isPending}>
-                {startMutation.isPending ? 'Starting...' : 'Start session'}
-              </Button>
-            )}
-            {session.status === 'Live' && (
-              <Button variant="danger" onClick={() => endMutation.mutate()} disabled={endMutation.isPending}>
-                {endMutation.isPending ? 'Ending...' : 'End session'}
-              </Button>
-            )}
-            {session.status === 'Ended' && <p className="text-sm text-muted">This session has ended.</p>}
           </div>
-        </div>
-      </div>
 
-      <div className="mt-6 text-center text-xs text-muted space-y-1">
-        {session.startedAt && <p>Started: {new Date(session.startedAt).toLocaleString()}</p>}
-        {session.endedAt && <p>Ended: {new Date(session.endedAt).toLocaleString()}</p>}
-      </div>
+          <div className="border-t border-border-soft mt-5 pt-5">
+            <p className="text-sm font-medium mb-1">{isLive ? 'Your session is live' : session.status === 'Draft' ? 'Ready when you are' : 'Session complete'}</p>
+            <p className="text-xs text-muted leading-relaxed mb-4">
+              {isLive ? 'Activate a question to start collecting responses.' : session.status === 'Draft' ? 'Prepare a few questions, then invite everyone in.' : 'Your polls and results are available below.'}
+            </p>
+            {session.status === 'Draft' && (
+              <Button fullWidth onClick={() => { setError(null); startMutation.mutate(); }} disabled={startMutation.isPending}>
+                {startMutation.isPending ? 'Starting…' : 'Start session →'}
+              </Button>
+            )}
+            {isLive && (
+              <Button fullWidth variant="danger" onClick={() => { setError(null); endMutation.mutate(); }} disabled={endMutation.isPending}>
+                {endMutation.isPending ? 'Ending…' : 'End session'}
+              </Button>
+            )}
+            {error && <p role="alert" className="text-pulse-magenta text-sm mt-3">{error}</p>}
+          </div>
+          {session.startedAt && <p className="text-xs text-muted mt-4">Started {new Date(session.startedAt).toLocaleString()}</p>}
+          {session.endedAt && <p className="text-xs text-muted mt-2">Ended {new Date(session.endedAt).toLocaleString()}</p>}
+        </aside>
 
-      <PollManager sessionId={session.id} />
+        <section className="min-w-0" aria-label="Session questions">
+          <PollManager sessionId={session.id} sessionStatus={session.status} />
+        </section>
+      </div>
     </div>
   );
 }

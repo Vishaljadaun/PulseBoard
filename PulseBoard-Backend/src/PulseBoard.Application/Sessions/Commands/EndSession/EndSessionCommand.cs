@@ -2,6 +2,7 @@ using MediatR;
 using PulseBoard.Application.Common.Exceptions;
 using PulseBoard.Application.Common.Interfaces;
 using PulseBoard.Application.Common.Models;
+using PulseBoard.Domain.Enums;
 
 namespace PulseBoard.Application.Sessions.Commands.EndSession;
 
@@ -11,11 +12,14 @@ public class EndSessionCommandHandler : IRequestHandler<EndSessionCommand, Sessi
 {
     private readonly IApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
+    private readonly ISessionHubNotifier _hubNotifier;
 
-    public EndSessionCommandHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+    public EndSessionCommandHandler(IApplicationDbContext db, ICurrentUserService currentUser,
+        ISessionHubNotifier hubNotifier)
     {
         _db = db;
         _currentUser = currentUser;
+        _hubNotifier = hubNotifier;
     }
 
     public async Task<SessionDto> Handle(EndSessionCommand request, CancellationToken cancellationToken)
@@ -28,7 +32,14 @@ public class EndSessionCommandHandler : IRequestHandler<EndSessionCommand, Sessi
 
         session.End(); // domain method enforces Live -> Ended rule
 
+        var activePolls = _db.Polls
+            .Where(p => p.SessionId == session.Id && p.Status == PollStatus.Active).ToList();
+        foreach (var poll in activePolls)
+            poll.Close();
+
         await _db.SaveChangesAsync(cancellationToken);
+
+        await _hubNotifier.SessionEnded(session.Id);
 
         return new SessionDto(
             session.Id, session.Title, session.Topic, session.JoinCode,

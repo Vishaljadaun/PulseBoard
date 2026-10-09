@@ -25,4 +25,8 @@ public class SessionHubNotifier : ISessionHubNotifier
     public Task PollClosed(Guid sessionId, Guid pollId) =>
         _hubContext.Clients.Group(SessionHub.GroupName(sessionId.ToString()))
             .SendAsync("PollClosed", pollId);
+
+    public Task SessionEnded(Guid sessionId) =>
+        _hubContext.Clients.Group(SessionHub.GroupName(sessionId.ToString()))
+            .SendAsync("SessionEnded", sessionId);
 }

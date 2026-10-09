@@ -4,6 +4,7 @@ using PulseBoard.Application.Common.Exceptions;
 using PulseBoard.Application.Common.Interfaces;
 using PulseBoard.Application.Common.Models;
 using PulseBoard.Domain.Entities;
+using PulseBoard.Domain.Enums;
 
 namespace PulseBoard.Application.Polls.Commands.CreatePoll;
 
@@ -50,6 +51,9 @@ public class CreatePollCommandHandler : IRequestHandler<CreatePollCommand, HostP
 
         if (session.HostId != _currentUser.HostId)
             throw new UnauthorizedException("You do not own this session.");
+
+        if (session.Status == SessionStatus.Ended)
+            throw new BusinessRuleException("Cannot create polls in an ended session.");
 
         var poll = new Poll
         {

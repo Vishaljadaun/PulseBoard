@@ -7,6 +7,7 @@ using PulseBoard.Application.Sessions.Commands.StartSession;
 using PulseBoard.Application.Sessions.Queries.GetHostSessions;
 using PulseBoard.Application.Sessions.Queries.GetSessionById;
 using PulseBoard.Application.Sessions.Queries.GetSessionByJoinCode;
+using PulseBoard.Application.Sessions.Queries.GetSessionStatus;
 
 namespace PulseBoard.API.Controllers;
 
@@ -19,6 +20,14 @@ public class SessionsController : ControllerBase
     public SessionsController(ISender mediator)
     {
         _mediator = mediator;
+    }
+
+    /// <summary>Public lifecycle state for participants returning after a disconnect or refresh.</summary>
+    [AllowAnonymous]
+    [HttpGet("{id:guid}/status")]
+    public async Task<IActionResult> GetStatus(Guid id)
+    {
+        return Ok(await _mediator.Send(new GetSessionStatusQuery(id)));
     }
 
     /// <summary>List all sessions belonging to the logged-in host — powers the dashboard.</summary>

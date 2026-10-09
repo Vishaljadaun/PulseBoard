@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { JoinCodeResult, Session } from '../types';
+import type { JoinCodeResult, Session, SessionStatus } from '../types';
 
 export interface CreateSessionPayload {
   title: string;
@@ -7,6 +7,8 @@ export interface CreateSessionPayload {
 }
 
 export const sessionApi = {
+  getStatus: (id: string) =>
+    apiClient.get<{ status: SessionStatus }>(`/sessions/${id}/status`).then((res) => res.data),
   getMySessions: () => apiClient.get<Session[]>('/sessions').then((res) => res.data),
 
   getById: (id: string) => apiClient.get<Session>(`/sessions/${id}`).then((res) => res.data),

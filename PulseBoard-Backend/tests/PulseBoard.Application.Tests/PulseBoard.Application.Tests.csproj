@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\PulseBoard.Domain\PulseBoard.Domain.csproj" />
+    <ProjectReference Include="..\..\src\PulseBoard.Infrastructure\PulseBoard.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

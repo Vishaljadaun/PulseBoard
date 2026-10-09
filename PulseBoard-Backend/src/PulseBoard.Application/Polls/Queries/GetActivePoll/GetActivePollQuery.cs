@@ -20,7 +20,8 @@ public class GetActivePollQueryHandler : IRequestHandler<GetActivePollQuery, Pol
     public Task<PollDto?> Handle(GetActivePollQuery request, CancellationToken cancellationToken)
     {
         var poll = _db.Polls
-            .Where(p => p.SessionId == request.SessionId && p.Status == PollStatus.Active)
+            .Where(p => p.SessionId == request.SessionId && p.Status == PollStatus.Active
+                && p.Session!.Status == SessionStatus.Live)
             .Select(p => new PollDto(
                 p.Id, p.SessionId, p.Question, p.Status.ToString(),
                 p.CreatedAt, p.ActivatedAt, p.ClosedAt,
