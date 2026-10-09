@@ -1,13 +1,15 @@
 import { motion } from 'framer-motion';
-import type { SessionStatus } from '../types';
+import type { SessionStatus, PollStatus } from '../types';
 
-const CONFIG: Record<SessionStatus, { label: string; dot: string; text: string; bg: string }> = {
+const CONFIG: Record<SessionStatus | PollStatus, { label: string; dot: string; text: string; bg: string }> = {
   Draft: { label: 'Draft', dot: 'bg-muted', text: 'text-muted', bg: 'bg-white/5' },
   Live: { label: 'Live', dot: 'bg-signal-mint', text: 'text-signal-mint', bg: 'bg-signal-mint/10' },
+  Active: { label: 'Active', dot: 'bg-signal-mint', text: 'text-signal-mint', bg: 'bg-signal-mint/10' },
+  Closed: { label: 'Closed', dot: 'bg-muted', text: 'text-muted', bg: 'bg-white/5' },
   Ended: { label: 'Ended', dot: 'bg-muted', text: 'text-muted', bg: 'bg-white/5' },
 };
 
-export function StatusBadge({ status }: { status: SessionStatus }) {
+export function StatusBadge({ status }: { status: SessionStatus | PollStatus }) {
   const c = CONFIG[status];
   return (
     <motion.span

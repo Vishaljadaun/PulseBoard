@@ -16,7 +16,7 @@ export function Navbar() {
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="border-b border-border-soft/60 bg-ink/70 backdrop-blur-xl sticky top-0 z-20"
+      className="border-b border-border-soft/60 bg-ink/70 backdrop-blur-xl sticky top-0 z-20 print:hidden"
     >
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/dashboard" className="flex items-center gap-2 group">

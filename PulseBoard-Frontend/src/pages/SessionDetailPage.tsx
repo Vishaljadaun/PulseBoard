@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { sessionApi } from '../api/sessionApi';
 import { getApiErrorMessage } from '../api/client';
@@ -12,9 +12,20 @@ import { useState } from 'react';
 export function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [showInviteOptions, setShowInviteOptions] = useState(false);
+
+  const duplicateMutation = useMutation({
+    mutationFn: () => sessionApi.duplicate(id!),
+    onSuccess: (copy) => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      setCopyMessage(null); setError(null);
+      navigate(`/sessions/${copy.id}`);
+    },
+    onError: (err) => setError(getApiErrorMessage(err)),
+  });
 
   const { data: session, isLoading } = useQuery({
     queryKey: ['sessions', id],
@@ -68,6 +79,13 @@ export function SessionDetailPage() {
         </div>
         <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight break-words">{session.title}</h1>
         <p className="mt-2 text-sm sm:text-base text-muted break-words">{session.topic}</p>
+        <div className="flex flex-wrap gap-3 mt-5">
+          <Link to={`/sessions/${session.id}/report`} className="secondary-link">View results & report ↗</Link>
+          <Button variant="ghost" disabled={duplicateMutation.isPending} onClick={() => { setError(null); duplicateMutation.mutate(); }}>
+            {duplicateMutation.isPending ? 'Creating a fresh copy…' : 'Reuse for a new group'}
+          </Button>
+        </div>
+        <p className="text-xs text-muted mt-2">Reusing copies the questions into a new draft with a fresh code and no responses.</p>
       </header>
 
       <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-8">

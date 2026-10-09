@@ -59,6 +59,9 @@
 }
 
 @layer utilities {
+  .eyebrow { @apply text-[10px] sm:text-xs font-semibold tracking-[0.16em] text-pulse-violet; }
+  .primary-link { @apply inline-flex items-center justify-center gap-3 min-h-11 rounded-xl bg-[#c4c0ff] text-[#171430] hover:bg-[#d4d1ff] px-5 py-3 text-sm font-semibold transition-colors; }
+  .secondary-link { @apply inline-flex items-center justify-center gap-2 min-h-11 rounded-xl border border-border-soft bg-surface-raised hover:border-pulse-violet/50 px-4 py-3 text-sm font-medium transition-colors; }
   /* Signature signal: concentric pulse rings, used on live indicators */
   .pulse-ring {
     position: relative;
@@ -101,8 +104,17 @@
   }
 
   /* Visible keyboard focus ring, consistent everywhere */
-  .focus-ring:focus-visible {
+  .focus-ring:focus-visible, .primary-link:focus-visible, .secondary-link:focus-visible {
     outline: 2px solid var(--color-pulse-violet);
     outline-offset: 2px;
   }
+}
+
+@media print {
+  body { background: white !important; color: #111827 !important; }
+  .report-page { --color-muted: #475569; --color-paper: #111827; --color-pulse-violet: #5142b0; --color-signal-mint: #08785d; --color-pulse-magenta: #a12a45; --color-ink: #ffffff; --color-surface: #ffffff; --color-surface-raised: #e2e8f0; }
+  .report-page .glass-card { box-shadow: none; background: white; border-color: #cbd5e1; }
+  .report-page section { break-inside: auto; }
+  .report-page article { break-inside: avoid; }
+  main { max-width: none !important; padding: 0 !important; }
 }
