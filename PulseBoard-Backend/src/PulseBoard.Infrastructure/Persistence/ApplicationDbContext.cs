@@ -7,6 +7,7 @@ namespace PulseBoard.Infrastructure.Persistence;
 public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+    protected ApplicationDbContext(DbContextOptions options) : base(options) { }
 
     public DbSet<Host> Hosts => Set<Host>();
     public DbSet<Session> Sessions => Set<Session>();

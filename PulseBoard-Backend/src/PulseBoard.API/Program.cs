@@ -158,7 +158,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
+    if (db.Database.IsSqlite() && !app.Environment.IsDevelopment())
+        app.Logger.LogWarning("SQLite is selected. On Render without a persistent disk, accounts and sessions are lost on restart. Configure PostgreSQL as described in docs/DATABASE_SETUP.md.");
+    await db.Database.MigrateAsync();
+    app.Logger.LogInformation("Database migrations completed using {Provider}.", db.Database.ProviderName);
 }
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();

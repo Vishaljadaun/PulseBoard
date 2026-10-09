@@ -12,6 +12,22 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: pulseboard_ci
+          POSTGRES_USER: pulseboard_test
+          POSTGRES_PASSWORD: local-ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pulseboard_test -d pulseboard_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PULSEBOARD_TEST_POSTGRES: Host=localhost;Port=5432;Database=pulseboard_ci;Username=pulseboard_test;Password=local-ci-only-password;SSL Mode=Disable
     defaults:
       run:
         working-directory: PulseBoard-Backend

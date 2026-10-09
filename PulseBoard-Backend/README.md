@@ -273,7 +273,7 @@ billing details, no card on file.
 1. Push this repo to GitHub (see the main project's git setup steps).
 2. Go to [render.com](https://render.com) → sign up with GitHub → **New +** → **Web Service**
 3. Connect your repo, then configure:
-   - **Root Directory:** `backend` (if this repo has both backend/ and frontend/ folders)
+   - **Root Directory:** `PulseBoard-Backend`
    - **Runtime:** Docker, **or** if Render's native .NET runtime is available, use that with:
      - **Build Command:** `dotnet publish src/PulseBoard.API/PulseBoard.API.csproj -c Release -o out`
      - **Start Command:** `dotnet out/PulseBoard.API.dll`
@@ -285,15 +285,13 @@ billing details, no card on file.
 5. Click **Create Web Service** — Render builds and deploys automatically. Migrations apply themselves on startup (see `Program.cs`) — no manual step needed.
 6. Every future `git push` to `main` triggers an automatic redeploy — this is Render's own GitHub integration, separate from `.github/workflows/ci.yml` (which just runs build+test as a safety check, doesn't deploy).
 
-**Important limitation to know about:** Render's free tier has an
-**ephemeral filesystem** — the `pulseboard.db` SQLite file resets whenever
-the service restarts or redeploys (free-tier services also spin down after
-15 minutes of inactivity and cold-start on the next request). That means
-demo data you create can disappear after a while. This is expected and
-fine for a portfolio demo — just re-register/re-create a session if you
-come back to a "reset" instance. If you ever need data to persist for real,
-that's the point where you'd move to a real hosted database (see the Azure
-SQL free-tier path if you want that later).
+**Persistent accounts on Render Free:** the default local SQLite file is temporary
+and can disappear on redeploy, restart, or idle spin-down. Use the separate
+PostgreSQL provider with a hosted database such as Neon for accounts and sessions
+that survive backend restarts. See [the database setup guide](../docs/DATABASE_SETUP.md)
+for the two environment variables, connection format, cutover, and restart check.
+Local development can continue using SQLite. Do not treat repeated registration
+as normal behaviour for a deployed portfolio app.
 
 Note: `appsettings.json`'s `Jwt:Secret` is a placeholder for **local dev
 only**. In Render, the Environment variable you set overrides it

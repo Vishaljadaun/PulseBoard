@@ -45,3 +45,12 @@ Billing is not included in this completion scope unless a paid product is reques
 - Regression coverage for report authorization/calculation, starter validation, copy isolation, demo behavior, and retrying failed starter creation.
 
 See docs/TRAINING_WORKFLOW.md for the product demo, API contract, and interpretation limits. These additions do not close the voting-concurrency, persistent deployment, or full browser acceptance milestones above.
+
+## Milestone 3: persistent database support
+
+- Optional PostgreSQL provider with independent migrations and snapshot; SQLite remains available locally.
+- Explicit provider selection with no silent fallback when PostgreSQL configuration is invalid.
+- Startup warning for hosted SQLite, safe migration-provider logging, and Neon/Render cutover instructions.
+- CI PostgreSQL integration test for initial/repeated migration, registration, password-hash persistence, login through a fresh application container, saved sessions/votes/reports, and duplicate-session isolation.
+
+Cloud database creation and Render environment configuration are user setup steps. Existing SQLite data is not automatically transferred. Production restart/redeploy persistence and backups must still be verified after cutover; see docs/DATABASE_SETUP.md.
