@@ -14,6 +14,7 @@ export function SessionDetailPage() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [showInviteOptions, setShowInviteOptions] = useState(false);
 
   const { data: session, isLoading } = useQuery({
     queryKey: ['sessions', id],
@@ -75,12 +76,18 @@ export function SessionDetailPage() {
           <p className="font-mono text-3xl sm:text-4xl font-semibold tracking-[0.16em] text-paper mb-2" aria-label={`Join code ${session.joinCode}`}>
             {session.joinCode}
           </p>
+          <button type="button" className="focus-ring min-h-11 text-sm text-pulse-violet lg:hidden"
+            aria-expanded={showInviteOptions} aria-controls="invite-options" onClick={() => setShowInviteOptions((visible) => !visible)}>
+            {showInviteOptions ? 'Hide sharing options −' : 'Share code or invite link +'}
+          </button>
+          <div id="invite-options" className={`${showInviteOptions ? 'block' : 'hidden'} lg:block`}>
           <p className="text-xs leading-relaxed text-muted mb-5">Share this code or a join link. Participants can join once the session is live.</p>
           <Button variant="secondary" fullWidth onClick={copyJoinLink}>Copy join link</Button>
           {copyMessage && <p role="status" className="text-xs text-signal-mint mt-2">{copyMessage}</p>}
           <div className="grid gap-3 mt-4">
             <JoinQrCode joinCode={session.joinCode} />
             <ShareSessionButton title={session.title} joinCode={session.joinCode} />
+          </div>
           </div>
 
           <div className="border-t border-border-soft mt-5 pt-5">
