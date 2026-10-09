@@ -74,7 +74,7 @@ and stale HTTP responses.
 - Backend Docker build context: `PulseBoard-Backend`.
 - Set backend `Jwt__Secret`, `AllowedOrigin`, and optionally `Ai__GroqApiKey` through the host.
 - Set frontend `VITE_API_BASE_URL` and `VITE_SIGNALR_HUB_URL` to the deployed backend.
-- Give SQLite persistent storage and set `ConnectionStrings__DefaultConnection` to that path.
+- For Render Free, configure PostgreSQL using [docs/DATABASE_SETUP.md](docs/DATABASE_SETUP.md). Local SQLite is temporary on Render without a paid persistent disk.
 - Validate the host/participant flow and both CI jobs before deploying changes.
 
 ## Training and facilitation workspace
