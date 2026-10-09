@@ -12,6 +12,9 @@ A real-time polling and quiz application with a .NET 8 API, React/TypeScript fro
 
 See [COMPLETION.md](COMPLETION.md) for remaining work and the acceptance checklist. This is an evolving portfolio project.
 
+For AI setup and the retired-model migration, see [AI setup](docs/AI_SETUP.md).
+For the proposed commercial module and validation plan, see [Product direction](docs/PRODUCT_DIRECTION.md).
+
 ## Run locally
 
 Prerequisites: .NET 8 SDK and Node.js 22.12+ (CI uses Node 22).

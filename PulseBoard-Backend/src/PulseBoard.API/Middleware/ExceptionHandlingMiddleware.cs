@@ -41,7 +41,13 @@ public class ExceptionHandlingMiddleware
             NotFoundException => (HttpStatusCode.NotFound, exception.Message),
             UnauthorizedException => (HttpStatusCode.Unauthorized, exception.Message),
             BusinessRuleException => (HttpStatusCode.BadRequest, exception.Message),
-            AiGenerationException => (HttpStatusCode.BadRequest, exception.Message),
+            AiGenerationException ai => (ai.Code switch
+            {
+                "ai_rate_limited" => HttpStatusCode.TooManyRequests,
+                "ai_timeout" => HttpStatusCode.GatewayTimeout,
+                "ai_configuration" => HttpStatusCode.ServiceUnavailable,
+                _ => HttpStatusCode.BadGateway
+            }, ai.Message),
             ValidationException validationEx => (HttpStatusCode.BadRequest,
                 string.Join(" | ", validationEx.Errors.Select(e => e.ErrorMessage))),
             _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
@@ -50,7 +56,8 @@ public class ExceptionHandlingMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)statusCode;
 
-        var payload = JsonSerializer.Serialize(new { error = message });
+        var aiError = exception as AiGenerationException;
+        var payload = JsonSerializer.Serialize(new { error = message, code = aiError?.Code, retryable = aiError?.Retryable });
         return context.Response.WriteAsync(payload);
     }
 }

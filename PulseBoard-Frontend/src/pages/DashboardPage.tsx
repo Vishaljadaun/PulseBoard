@@ -40,7 +40,7 @@ export function DashboardPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-2xl font-semibold">Your sessions</h1>
           <p className="text-muted text-sm mt-1">Create a session to get a live join code</p>
@@ -107,15 +107,15 @@ export function DashboardPage() {
               variants={staggerItem}
               whileHover={{ y: -2, transition: { duration: 0.15 } }}
               onClick={() => navigate(`/sessions/${s.id}`)}
-              className="focus-ring glass-card rounded-2xl px-6 py-5 text-left flex items-center justify-between group"
+              className="focus-ring glass-card rounded-2xl px-5 py-5 text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
             >
-              <div>
+              <div className="min-w-0 break-words">
                 <p className="font-display font-medium text-paper group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-pulse-violet group-hover:to-pulse-magenta transition-all">
                   {s.title}
                 </p>
                 <p className="text-sm text-muted mt-0.5">{s.topic}</p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex shrink-0 items-center gap-4">
                 <span className="font-mono text-sm text-muted tracking-wider">{s.joinCode}</span>
                 <StatusBadge status={s.status} />
               </div>

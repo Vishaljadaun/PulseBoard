@@ -28,13 +28,13 @@ export function Navbar() {
             Pulse<span className="gradient-text">Board</span>
           </span>
         </Link>
-        <div className="flex items-center gap-5 text-sm">
-          <span className="text-muted">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-5 text-sm ml-4">
+          <span className="text-muted max-w-24 sm:max-w-48 truncate">
             Hi, <span className="text-paper">{name}</span>
           </span>
           <button
             onClick={handleLogout}
-            className="focus-ring text-muted hover:text-paper font-medium transition-colors"
+            className="focus-ring shrink-0 min-h-11 text-muted hover:text-paper font-medium transition-colors"
           >
             Log out
           </button>

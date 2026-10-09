@@ -39,3 +39,7 @@ export function getApiErrorMessage(error: unknown): string {
   }
   return 'Something went wrong.';
 }
+
+export function canRetryApiError(error: unknown): boolean {
+  return !axios.isAxiosError(error) || error.response?.data?.retryable !== false;
+}
