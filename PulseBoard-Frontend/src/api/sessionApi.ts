@@ -1,12 +1,15 @@
 import { apiClient } from './client';
-import type { JoinCodeResult, Session, SessionStatus } from '../types';
+import type { JoinCodeResult, Session, SessionStatus, SessionQuestion, SessionReport } from '../types';
 
 export interface CreateSessionPayload {
   title: string;
   topic: string;
+  questions?: SessionQuestion[];
 }
 
 export const sessionApi = {
+  getReport: (id: string) => apiClient.get<SessionReport>(`/sessions/${id}/report`).then((res) => res.data),
+  duplicate: (id: string) => apiClient.post<Session>(`/sessions/${id}/duplicate`).then((res) => res.data),
   getStatus: (id: string) =>
     apiClient.get<{ status: SessionStatus }>(`/sessions/${id}/status`).then((res) => res.data),
   getMySessions: () => apiClient.get<Session[]>('/sessions').then((res) => res.data),

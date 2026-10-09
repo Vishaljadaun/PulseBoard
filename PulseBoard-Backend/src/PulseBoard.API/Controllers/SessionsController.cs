@@ -8,6 +8,8 @@ using PulseBoard.Application.Sessions.Queries.GetHostSessions;
 using PulseBoard.Application.Sessions.Queries.GetSessionById;
 using PulseBoard.Application.Sessions.Queries.GetSessionByJoinCode;
 using PulseBoard.Application.Sessions.Queries.GetSessionStatus;
+using PulseBoard.Application.Sessions.Commands.DuplicateSession;
+using PulseBoard.Application.Sessions.Queries.GetSessionReport;
 
 namespace PulseBoard.API.Controllers;
 
@@ -20,6 +22,19 @@ public class SessionsController : ControllerBase
     public SessionsController(ISender mediator)
     {
         _mediator = mediator;
+    }
+
+    [Authorize]
+    [HttpGet("{id:guid}/report")]
+    public async Task<IActionResult> GetReport(Guid id, CancellationToken cancellationToken) =>
+        Ok(await _mediator.Send(new GetSessionReportQuery(id), cancellationToken));
+
+    [Authorize]
+    [HttpPost("{id:guid}/duplicate")]
+    public async Task<IActionResult> Duplicate(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new DuplicateSessionCommand(id), cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     /// <summary>Public lifecycle state for participants returning after a disconnect or refresh.</summary>

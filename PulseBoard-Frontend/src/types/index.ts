@@ -74,3 +74,29 @@ export interface VoteResult {
 export interface ApiErrorResponse {
   error: string;
 }
+
+export interface SessionQuestion {
+  question: string;
+  options: string[];
+  correctOptionIndex: number | null;
+}
+
+export interface ReportQuestion {
+  id: string;
+  question: string;
+  status: PollStatus;
+  responses: number;
+  correctResponses: number | null;
+  accuracy: number | null;
+  options: { id: string; text: string; isCorrect: boolean; responses: number }[];
+}
+
+export interface SessionReport {
+  session: Session;
+  generatedAt: string;
+  respondents: number;
+  totalResponses: number;
+  quizResponses: number;
+  accuracy: number | null;
+  questions: ReportQuestion[];
+}

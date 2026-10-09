@@ -33,3 +33,15 @@ Billing is not included in this completion scope unless a paid product is reques
 5. Disconnect the participant, end a different live session, and reconnect. The ended state is recovered.
 6. Attempt activation/voting through the API for draft/ended sessions; expect a business-rule error.
 7. Run the commands in README.md and check both CI jobs before merging.
+
+## Milestone 2: useful training and facilitation workflow
+
+- Public product page and a no-login interactive demo with labelled sample data.
+- Dashboard starters for .NET onboarding, workshop feedback, and sprint retrospectives; search and status filters.
+- Validated atomic creation of a session and up to 50 starter questions.
+- Owner-only session duplication: new IDs/code, draft state, no votes or lifecycle timestamps.
+- Owner-only aggregate report with weighted quiz accuracy, distinct responding browser counts, option breakdowns, and selectable follow-up thresholds.
+- Formula-safe CSV export and print layout.
+- Regression coverage for report authorization/calculation, starter validation, copy isolation, demo behavior, and retrying failed starter creation.
+
+See docs/TRAINING_WORKFLOW.md for the product demo, API contract, and interpretation limits. These additions do not close the voting-concurrency, persistent deployment, or full browser acceptance milestones above.

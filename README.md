@@ -76,3 +76,9 @@ and stale HTTP responses.
 - Set frontend `VITE_API_BASE_URL` and `VITE_SIGNALR_HUB_URL` to the deployed backend.
 - Give SQLite persistent storage and set `ConnectionStrings__DefaultConnection` to that path.
 - Validate the host/participant flow and both CI jobs before deploying changes.
+
+## Training and facilitation workspace
+
+PulseBoard now includes a public product page, an interactive sample at `/demo`, three session starters, session reuse, and owner-only results reports with CSV export. See [the training workflow](docs/TRAINING_WORKFLOW.md) for a first workshop and a five-minute demo.
+
+Deploy the backend first, then the frontend. This milestone requires no new environment variables or database migration. Reports count anonymous browser identities, not verified learners.
